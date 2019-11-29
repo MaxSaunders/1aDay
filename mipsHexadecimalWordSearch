@@ -1,0 +1,142 @@
+# Max Saunders -- 10/25/19
+# lab7
+# Write a program to determine if a word in string is hexadecimal
+# then print in decimal value
+#===============================================================
+#Registers used:
+# $a0 - holds the output
+# $s0 - string address
+# $t0 - 1st pointer
+# $t1 - 2nd pointer
+# $t2 - holds the characters
+# $t3 - valid hex boolean
+# $t4 - stores decimal value
+# 
+# $t7 - max hex value for part b
+
+.data
+ 	 newLine:	.asciiz 	"\n"
+ 	 string:	.space 		300
+ 	 space:		.asciiz 	" "
+ 	 sparse:	.asciiz 	"Sparse"
+ 	 inter:		.asciiz 	"Intermediate"
+ 	 plenti:	.asciiz 	"Plentiful"
+ 	 period:	.byte		'.'
+ 	
+ 	  
+.text
+main:
+	li $t7, 0	#for max hex value
+	la $a0, string
+	li $a1, 300
+	li $v0, 8
+	syscall
+	la $s0, string
+	move $t0, $s0
+while1:
+	#lb $t2, 0($t0)	#loads the next character
+	li $t3, 1	#hex boolean
+	move $t1, $t0
+	
+while2:
+	lb $t2, 0($t0)
+	beqz $t2, partB	#exits to partB if the next char is null
+	
+	beq $t2, ' ', while4
+	beq $t2, '.', while4
+	bgt $t2, 'F', invalid
+	bgt $t2, '9', letter
+
+##Determine type of char and calculate the decimal
+num:
+	li $t8, 48
+	j while3
+letter:
+	li $t8, 55
+	j while3
+while3:
+	sll $t4, $t4, 4
+	add $t4, $t4, $t2
+	sub $t4, $t4, $t8
+	addi $t0, $t0, 1
+	j while2
+
+invalid:
+	li $t3, 0	#checks the boolean to see if it's a hex
+	addi $t0, $t0, 1
+	j while2
+
+while4:
+	beq $t3, 0, notHex
+hex:
+	li $v0, 1
+	move $a0, $t4
+	syscall
+
+	beq $t2, '.', isPeriod
+	j jump1
+isPeriod:
+	la $a0, period
+	li $v0, 4
+	syscall
+	
+jump1:
+	li $v0, 4
+	la $a0, space
+	syscall
+	
+	addi $t0, $t0, 1
+	bge $t4, $t7, greatest
+	j reset
+greatest:
+	move $t7, $t4	#sets new max value
+reset:
+	li $t4, 0
+	j while1
+	
+notHex:
+	li $t8, 0
+	sb $t8, 0($t0)
+	move $a0, $t1
+	li $v0, 4
+	syscall
+	
+	beq $t2, '.', isPeriod2
+	j jump2
+isPeriod2:
+	la $a0, period
+	li $v0, 4
+	syscall
+	
+jump2:
+	
+	addi $t0, $t0, 1
+	li $t4, 0
+	li $v0, 4
+	la $a0, space
+	syscall
+	
+	j while1
+partB:
+	la $a0, newLine
+	li $v0, 4
+	syscall
+	ble $t7, 255, isSparse
+	ble $t7, 65535, isInter
+isPlentiful:
+	la $a0, plenti
+	j exit
+isSparse:
+	la $a0, sparse
+	j exit
+isInter:
+	la $a0, inter
+	j exit
+exit:
+	syscall
+	
+	li $v0, 10
+	syscall
+	
+	
+	
